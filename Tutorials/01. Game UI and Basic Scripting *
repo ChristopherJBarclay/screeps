@@ -1,8 +1,126 @@
 Game UI and Basic Scripting
 
-* this file is incomplete
 
-If you don't already know JavaScript, Screeps recommends this free online course:
+0. If you don't already know JavaScript, Screeps recommends this free online course:
   https://www.codecademy.com/learn/introduction-to-javascript
   
+  
+
+1. Spawn a Creep by typing this into the console window:
+Game.spawns['Spawn1'].spawnCreep( [WORK, CARRY, MOVE], 'Harvester1' );
+
+Added Documentation folder to the Screeps repository, with files for 'Your Colony', 'Creeps', and 'Game Object'
+  Spawning creeps works like this:
+    StructureSpawn.spawnCreep
+  
+
+  
+2. To send a creep to harvest energy, write the following code in the Script Main module tab:
+
+module.exports.loop = function () {
+    var creep = Game.creeps['Harvester1'];
+    var sources = creep.room.find(FIND_SOURCES);
+    if(creep.harvest(sources[0]) == ERR_NOT_IN_RANGE) {
+        creep.moveTo(sources[0]);
+    }
+}
+
+Game.creeps is a hash containing all your creeps with creep names as hash keys.
+RoomObject.room is the link to the Room object. 
+  May be undefined in case if an object is a flag or a construction site and is placed in a room that is not visible to you.
+Room.find
+Creep.moveTo
+Creep.harvest
+
+
+
+3. To make the Creep transfer energy back to the spawn, revamp the Script Main module code by adding .carry.energy < .carryCapacity to the creep.
+  
+module.exports.loop = function () {
+    var creep = Game.creeps['Harvester1'];
+
+    if(creep.carry.energy < creep.carryCapacity) {
+        var sources = creep.room.find(FIND_SOURCES);
+        if(creep.harvest(sources[0]) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(sources[0]);
+        }
+    }
+    else {
+        if( creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE ) {
+            creep.moveTo(Game.spawns['Spawn1']);
+        }
+    }
+}
+  
+  Creep.transfer
+  Creep.carry
+  Creep.carryCapacity
+
+
+
+4. Creeps (almost all of them) have a life cycle of 1500 game ticks, then it "ages" and dies.
+  Create another worker creep, which will cost 200 additional energy. Type it into the Console tab:
+    Game.spawns['Spawn1'].spawnCreep( [WORK, CARRY, MOVE], 'Harvester2' );
+
+
+
+5. The second creep is ready, but won't move until we include it in the program. Rewrite the Main module of the Script tab:
+  
+module.exports.loop = function () {
+    for(var name in Game.creeps) {
+        var creep = Game.creeps[name];
+
+        if(creep.carry.energy < creep.carryCapacity) {
+            var sources = creep.room.find(FIND_SOURCES);
+            if(creep.harvest(sources[0]) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(sources[0]);
+            }
+        }
+        else {
+            if(creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(Game.spawns['Spawn1']);
+            }
+        }
+    }
+}
+
+
+
+6. Let's improve the code by taking the worker's behavior out into a separate module.
+  Create a module called role.harvester in Modules on the Script tab.
+  
+var roleHarvester = {
+
+    /** @param {Creep} creep **/
+    run: function(creep) {
+	    if(creep.carry.energy < creep.carryCapacity) {
+            var sources = creep.room.find(FIND_SOURCES);
+            if(creep.harvest(sources[0]) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(sources[0]);
+            }
+        }
+        else {
+            if(creep.transfer(Game.spawns['Spawn1'], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(Game.spawns['Spawn1']);
+            }
+        }
+	}
+};
+
+module.exports = roleHarvester;
+
+
+
+7. Rewrite the Main module code, leaving only the loop and a call to your new module by method 
+    require('role.harvester')
+
+var roleHarvester = require('role.harvester');
+
+module.exports.loop = function () {
+
+    for(var name in Game.creeps) {
+        var creep = Game.creeps[name];
+        roleHarvester.run(creep);
+    }
+}
 
